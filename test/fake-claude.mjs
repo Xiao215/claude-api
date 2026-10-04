@@ -46,7 +46,9 @@ if (schema?.properties?.tool_calls) {
   structured =
     prompt.includes("CALL_TOOL") || mustCall
       ? { type: "tool_calls", content: "Checking.", tool_calls: [{ name: tool, arguments: { city: "Paris" } }] }
-      : { type: "message", content: text };
+      : schema.properties.reply
+        ? { type: "message", content: "", reply: { ok: true, tools: opt("--tools") } }
+        : { type: "message", content: text };
 } else if (schema) {
   structured = { ok: true, schema };
 }

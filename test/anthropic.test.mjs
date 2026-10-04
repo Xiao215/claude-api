@@ -47,8 +47,27 @@ test("tools: tool_use blocks and stop_reason tool_use", async () => {
 
   const any = await (await messages({ messages: user("hi"), tools: [WEATHER], tool_choice: { type: "any" } })).json();
   assert.equal(any.stop_reason, "tool_use");
-  const server = await messages({ messages: user("hi"), tools: [{ type: "web_search_20250305", name: "web_search" }] });
-  assert.equal(server.status, 400);
+  const other = await messages({ messages: user("hi"), tools: [{ type: "code_execution_20250522", name: "code" }] });
+  assert.equal(other.status, 400);
+});
+
+test("web_search and web_fetch server tools turn on WebSearch and WebFetch for that request only", async () => {
+  const j = await (await messages({ messages: user("hi"), tools: [{ type: "web_search_20250305", name: "web_search" }] })).json();
+  assert.match(j.content[0].text, /tools="WebSearch,WebFetch"/);
+  // Not offered as a caller-run tool.
+  assert.doesNotMatch(j.content[0].text, /## web_search/);
+  const plain = await (await messages({ messages: user("hi") })).json();
+  assert.match(plain.content[0].text, /tools=""/);
+});
+
+test("tools with an output format: the final reply is in the schema", async () => {
+  const j = await (await messages({
+    messages: user("hi"),
+    tools: [WEATHER],
+    output_config: { format: { type: "json_schema", schema: { type: "object", properties: { ok: { type: "boolean" } } } } },
+  })).json();
+  assert.equal(j.stop_reason, "end_turn");
+  assert.equal(JSON.parse(j.content[0].text).ok, true);
 });
 
 test("tools: tool_use and tool_result history is part of the transcript", async () => {

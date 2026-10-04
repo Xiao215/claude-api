@@ -153,6 +153,18 @@ through a JSON schema that is either a reply or a list of calls, and the argumen
 validated against each tool's `parameters`. With tools offered, the
 reply arrives in one piece at the end even when streaming.
 
+Tools and a structured reply work together, as on the real APIs: pass `tools` with
+`response_format: {"type": "json_schema", …}` (or Anthropic's `output_config.format`) and
+Claude may call tools first, then answers with JSON in your schema.
+
+### Web search, per request
+
+OpenAI's `web_search_options: {}` or Anthropic's server tools (`{"type":
+"web_search_20250305", "name": "web_search"}`, `web_fetch_*`) let Claude search and read the
+web for that request only, with Claude Code's own WebSearch and WebFetch. `/ask` takes
+`"web_search": true`. Other requests stay without tools. `TOOLS=WebSearch,WebFetch` still turns
+it on for every request.
+
 ### Images
 
 OpenAI: `{"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}`.
@@ -197,7 +209,7 @@ server is where you decide how much of your data an agent can reach.
 |---|---|
 | `POST /v1/chat/completions` | OpenAI chat format |
 | `POST /v1/messages` | Anthropic Messages format |
-| `POST /ask` | `{"prompt", "system"?, "model"?, "json_schema"?, "effort"?}` → `{"reply", "model", "usage"}` |
+| `POST /ask` | `{"prompt", "system"?, "model"?, "json_schema"?, "effort"?, "web_search"?}` → `{"reply", "model", "usage"}` |
 | `GET /v1/models` | Model aliases, in OpenAI or Anthropic shape (by `anthropic-version` header) |
 | `GET /stats` | Requests, errors, tokens per model, and your plan usage (`plan.windows`) as of the last request |
 | `GET /health` | Status, no auth |
@@ -236,7 +248,8 @@ model. What this service does about everything else:
   uploads (`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` and friends).
 - Writes no transcripts to `~/.claude` (`--no-session-persistence`) and never logs
   prompts, only route, status and timing.
-- Gives Claude no built-in tools by default, so it can't fetch URLs or touch files.
+- Gives Claude no built-in tools by default, so it can't fetch URLs or touch files. A request
+  that asks for web search gets WebSearch and WebFetch for itself only; files and shell never.
   Nothing a prompt says can make it send your data anywhere else.
 
 One setting only you can change: **claude.ai → Settings → Privacy → Help improve Claude → off**.
@@ -257,8 +270,8 @@ For data that must never leave your machine, point your app at a local model ins
 - Conversations are stateless: send the full history each time, as with the real APIs.
   Multi-turn history is flattened into one prompt.
 - Ignored: `temperature`, `top_p`, `max_tokens`, `stop`, `n` (only one choice).
-  Not supported: audio, PDFs/files, remote image URLs, Anthropic server tools (web
-  search etc.; use `TOOLS=WebSearch` instead), `/v1/messages/count_tokens`.
+  Not supported: audio, PDFs/files, remote image URLs, Anthropic server tools other than
+  web search and web fetch, `/v1/messages/count_tokens`.
 - Runs only where `claude` is signed in, i.e. your machine.
 
 ## Troubleshooting

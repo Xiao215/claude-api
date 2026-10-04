@@ -102,12 +102,23 @@ test("tools: tool_choice required / named / none", async () => {
   assert.equal(unknown.status, 400);
   assert.equal((await chat({ messages: user("hi"), tools: [{}] })).status, 400);
   assert.equal((await chat({ messages: user("hi"), functions: [{ name: "f" }] })).status, 400);
-  const both = await chat({
-    messages: user("hi"),
-    tools: [WEATHER],
-    response_format: { type: "json_schema", json_schema: { schema: { type: "object" } } },
-  });
-  assert.equal(both.status, 400);
+});
+
+test("tools with response_format json_schema: tools may be called, and the final reply is in the schema", async () => {
+  const format = { type: "json_schema", json_schema: { name: "x", schema: { type: "object", properties: { ok: { type: "boolean" } } } } };
+  const reply = await (await chat({ messages: user("hi"), tools: [WEATHER], response_format: format })).json();
+  assert.equal(reply.choices[0].finish_reason, "stop");
+  assert.equal(JSON.parse(reply.choices[0].message.content).ok, true);
+  const call = await (await chat({ messages: user("CALL_TOOL"), tools: [WEATHER], response_format: format })).json();
+  assert.equal(call.choices[0].finish_reason, "tool_calls");
+  assert.equal(call.choices[0].message.tool_calls[0].function.name, "get_weather");
+});
+
+test("web_search_options turns on WebSearch and WebFetch for that request only", async () => {
+  const j = await (await chat({ messages: user("hi"), web_search_options: {} })).json();
+  assert.match(j.choices[0].message.content, /tools="WebSearch,WebFetch"/);
+  const plain = await (await chat({ messages: user("hi") })).json();
+  assert.match(plain.choices[0].message.content, /tools=""/);
 });
 
 test("tools: earlier calls and their results are part of the transcript", async () => {

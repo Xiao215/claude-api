@@ -27,7 +27,7 @@ if (!LOOPBACK.includes(HOST) && !API_KEY) {
 
 // --- small routes ----------------------------------------------------------------
 
-// Simplest possible endpoint: {"prompt": "...", "system"?: "...", "model"?: "..."}
+// Simplest possible endpoint: {"prompt": "...", "system"?: "...", "model"?: "...", "web_search"?: true}
 async function ask(req, res) {
   const body = await readJson(req);
   if (!body.prompt || typeof body.prompt !== "string") throw new HttpError(400, 'Send JSON like {"prompt": "hi"}');
@@ -41,6 +41,7 @@ async function ask(req, res) {
     mcpServers: toolServers(body.mcp_servers),
     maxTurns: maxTurnsOf(body.max_turns),
     effort: effortOf(body.effort),
+    webSearch: body.web_search === true,
   });
   const u = usageOf(result);
   sendJson(res, 200, {
