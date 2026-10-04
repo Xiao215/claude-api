@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { KEY, useServer } from "./helpers.mjs";
+import { KEY, startupMessage, useServer } from "./helpers.mjs";
 
 const LOG = path.join(tmpdir(), `fake-claude-${process.pid}.log`);
 writeFileSync(LOG, "");
@@ -19,6 +19,20 @@ test("health needs no key", async () => {
   const r = await fetch(`${base}/health`);
   assert.equal(r.status, 200);
   assert.equal((await r.json()).ok, true);
+});
+
+test("startup message: who's signed in and the base URLs to paste", async () => {
+  const out = await startupMessage(18790);
+  assert.match(out, /Signed in to Claude \(max plan\) as me@example\.com/);
+  assert.match(out, /OpenAI SDKs +base_url = http:\/\/127\.0\.0\.1:18790\/v1/);
+  assert.match(out, /Anthropic SDKs +base_url = http:\/\/127\.0\.0\.1:18790\n/);
+  assert.match(out, /api_key +any value/);
+  assert.doesNotMatch(out, /⚠/);
+});
+
+test("startup message warns when Claude Code is signed out or missing", async () => {
+  assert.match(await startupMessage(18791, { FAKE_CLAUDE_LOGGED_OUT: "1" }), /⚠ Claude Code isn't signed in/);
+  assert.match(await startupMessage(18792, { CLAUDE_CLI: "/nonexistent/claude" }), /⚠ Could not find "\/nonexistent\/claude"/);
 });
 
 test("rejects missing or wrong API key; accepts Bearer and x-api-key", async () => {

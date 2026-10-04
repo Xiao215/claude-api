@@ -35,6 +35,28 @@ export function useServer(port, env = {}) {
   return { base, post };
 }
 
+// Starts a server just to read what it prints at startup, then stops it.
+export async function startupMessage(port, env = {}) {
+  chmodSync(FAKE, 0o755);
+  const server = spawn(process.execPath, [SERVER], {
+    cwd: tmpdir(),
+    env: { ...process.env, PORT: String(port), CLAUDE_CLI: FAKE, ...env },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  await new Promise((resolve) => {
+    const read = (d) => {
+      output += d;
+      if (output.includes("concurrency=")) resolve();
+    };
+    server.stdout.on("data", read);
+    server.stderr.on("data", read);
+    server.on("exit", resolve);
+  });
+  server.kill();
+  return output;
+}
+
 // Splits a server-sent-events body into [{ event, data }].
 export function parseSSE(raw) {
   return raw

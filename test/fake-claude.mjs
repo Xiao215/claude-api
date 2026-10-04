@@ -4,6 +4,11 @@
 import { appendFileSync, readFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
+if (args[0] === "auth") {
+  const loggedIn = !process.env.FAKE_CLAUDE_LOGGED_OUT;
+  console.log(JSON.stringify(loggedIn ? { loggedIn, authMethod: "claude.ai", email: "me@example.com", subscriptionType: "max" } : { loggedIn }));
+  process.exit(loggedIn ? 0 : 1);
+}
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
 const input = JSON.parse(readFileSync(0, "utf8").split("\n")[0]);
 const blocks = input.message.content;

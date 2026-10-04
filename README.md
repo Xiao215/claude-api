@@ -58,6 +58,18 @@ cp .env.example .env    # optional: defaults are fine
 npm start
 ```
 
+It prints the base URLs to paste into your app, and warns if Claude Code isn't
+installed or signed in:
+
+```
+claude-api listening on http://127.0.0.1:8787
+  Signed in to Claude (max plan) as you@example.com
+
+  OpenAI SDKs      base_url = http://127.0.0.1:8787/v1
+  Anthropic SDKs   base_url = http://127.0.0.1:8787
+  api_key          any value (no API_KEY set)
+```
+
 To run it in the background and start it at login (macOS via launchd, Linux via a
 systemd user service):
 

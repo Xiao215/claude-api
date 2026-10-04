@@ -10,10 +10,10 @@
 import http from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import {
-  ALLOWED_ORIGINS, API_KEY, DEFAULT_MODEL, DEFAULT_SYSTEM, HOST, MAX_CONCURRENT, MODELS, PORT, TOOLS,
+  ALLOWED_ORIGINS, API_KEY, CLAUDE_CLI, DEFAULT_MODEL, DEFAULT_SYSTEM, HOST, MAX_CONCURRENT, MODELS, PORT, TOOLS,
 } from "./lib/config.mjs";
 import {
-  HttpError, effortOf, liveStats, maxTurnsOf, modelOf, outputOf, resolveModel, runClaude, stats, toolServers, usageOf,
+  HttpError, checkLogin, effortOf, liveStats, maxTurnsOf, modelOf, outputOf, resolveModel, runClaude, stats, toolServers, usageOf,
 } from "./lib/claude.mjs";
 import { anthropicErrorType, messages } from "./lib/anthropic.mjs";
 import { chatCompletions } from "./lib/openai.mjs";
@@ -139,7 +139,40 @@ server.on("error", (e) => {
   console.error(e.code === "EADDRINUSE" ? `Port ${PORT} is already in use — is claude-api already running? Set PORT to pick another.` : e.message);
   process.exit(1);
 });
-server.listen(PORT, HOST, () => {
-  console.log(`claude-api listening on http://${HOST}:${PORT}`);
-  console.log(`  model=${DEFAULT_MODEL} tools=${TOOLS || "none"} concurrency=${MAX_CONCURRENT} auth=${API_KEY ? "on" : "off"}`);
+server.listen(PORT, HOST, async () => {
+  console.log(banner(await checkLogin()));
 });
+
+// What to paste into your app, and anything that will stop requests working.
+function banner(login) {
+  const local = ["0.0.0.0", "::"].includes(HOST) ? "127.0.0.1" : HOST.includes(":") ? `[${HOST}]` : HOST;
+  const url = `http://${local}:${PORT}`;
+  const lines = [`claude-api listening on ${url}`];
+
+  if (login?.missing) {
+    lines.push(
+      `  ⚠ Could not find "${CLAUDE_CLI}". Install Claude Code (https://docs.claude.com/en/docs/claude-code)`,
+      "    or set CLAUDE_CLI to its full path. Requests will fail until then.",
+    );
+  } else if (login && !login.loggedIn) {
+    lines.push("  ⚠ Claude Code isn't signed in. Run `claude`, type /login, then /exit — no restart needed.");
+  } else if (login) {
+    const plan = login.subscriptionType ? ` (${login.subscriptionType} plan)` : "";
+    lines.push(`  Signed in to Claude${plan}${login.email ? ` as ${login.email}` : ""}`);
+    if (/api.?key/i.test(login.authMethod || "")) {
+      lines.push("  ⚠ Claude Code is using an API key, so requests are billed per token, not to your subscription.");
+    }
+  }
+
+  lines.push(
+    "",
+    `  OpenAI SDKs      base_url = ${url}/v1`,
+    `  Anthropic SDKs   base_url = ${url}`,
+    `  api_key          ${API_KEY ? "your API_KEY from .env" : "any value (no API_KEY set)"}`,
+    "",
+    `  Try it:  curl -s ${url}/ask -H 'Content-Type: application/json'${API_KEY ? ` -H "Authorization: Bearer $API_KEY"` : ""} -d '{"prompt": "hi"}'`,
+    "",
+    `  model=${DEFAULT_MODEL} tools=${TOOLS || "none"} concurrency=${MAX_CONCURRENT}`,
+  );
+  return lines.join("\n");
+}
