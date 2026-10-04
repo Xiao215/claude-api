@@ -148,8 +148,9 @@ r = client.chat.completions.create(model="haiku", messages=msgs, tools=tools)
 ```
 
 Claude Code doesn't support client-side tools itself, so this service emulates them:
-Claude answers through a JSON schema that is either a reply or a list of calls, and
-the arguments are validated against each tool's `parameters`. With tools offered, the
+your tools are described in the system prompt as ones the caller runs, Claude answers
+through a JSON schema that is either a reply or a list of calls, and the arguments are
+validated against each tool's `parameters`. With tools offered, the
 reply arrives in one piece at the end even when streaming.
 
 ### Images

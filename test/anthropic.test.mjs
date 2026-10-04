@@ -67,6 +67,23 @@ test("tools: tool_use and tool_result history is part of the transcript", async 
   assert.match(text, /<tool_result id=\\"toolu_1\\">\\n18C\\n<\/tool_result>/);
 });
 
+// The real CLI only has StructuredOutput. Without being told, Claude calls the
+// caller's tools directly, gets "No such tool available" and often gives up;
+// a transcript asking for plain text makes it skip the structured output.
+test("tools: Claude is told they aren't its own tools and to request them via StructuredOutput", async () => {
+  const j = await (
+    await messages({
+      tools: [WEATHER],
+      messages: [...user("weather?"), { role: "assistant", content: "Where?" }, ...user("Paris")],
+    })
+  ).json();
+  const text = j.content[0].text;
+  assert.match(text, /not in your own tool list.*never call them directly/);
+  assert.match(text, /call StructuredOutput with type \\"tool_calls\\"/);
+  assert.match(text, /## get_weather\\nWeather for a city/);
+  assert.doesNotMatch(text, /text only/);
+});
+
 test("structured output via output_config.format", async () => {
   const schema = { type: "object", properties: { ok: { type: "boolean" } } };
   const j = await (await messages({ messages: user("x"), output_config: { format: { type: "json_schema", schema } } })).json();
