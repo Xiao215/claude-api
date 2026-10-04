@@ -1,0 +1,17 @@
+{
+  "name": "claude-api",
+  "version": "1.0.0",
+  "description": "Use Claude Code from your own scripts and tools through local OpenAI- and Anthropic-compatible APIs",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "bin": { "claude-api": "server.mjs" },
+  "files": ["server.mjs", "lib/", "scripts/", ".env.example"],
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "install-service": "scripts/install-service.sh",
+    "uninstall-service": "scripts/uninstall-service.sh"
+  }
+}
