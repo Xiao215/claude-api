@@ -36,6 +36,20 @@ test("system as text blocks; images as base64 blocks", async () => {
   assert.equal(url.status, 400);
 });
 
+test("PDFs as base64 document blocks, in a lone message and in a multi-turn transcript", async () => {
+  const doc = { type: "document", source: { type: "base64", media_type: "application/pdf", data: "JVBERi0=" }, title: "notes.pdf" };
+  const j = await (await messages({ messages: user([doc, { type: "text", text: "summarize" }]) })).json();
+  assert.match(j.content[0].text, /documents=\["notes\.pdf"\]/);
+  const multi = await (
+    await messages({ messages: [{ role: "user", content: [doc] }, { role: "assistant", content: "ok" }, { role: "user", content: "and?" }] })
+  ).json();
+  assert.match(multi.content[0].text, /documents=\["notes\.pdf"\]/);
+  const word = await messages({ messages: user([{ ...doc, source: { ...doc.source, media_type: "application/msword" } }]) });
+  assert.equal(word.status, 400);
+  const url = await messages({ messages: user([{ ...doc, source: { type: "url", url: "https://example.com/a.pdf" } }]) });
+  assert.equal(url.status, 400);
+});
+
 test("tools: tool_use blocks and stop_reason tool_use", async () => {
   const j = await (await messages({ messages: user("CALL_TOOL"), tools: [WEATHER] })).json();
   assert.equal(j.stop_reason, "tool_use");

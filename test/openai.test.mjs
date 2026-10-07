@@ -52,6 +52,14 @@ test("images: data URLs reach Claude as image blocks; remote URLs are refused", 
   assert.equal(pdf.status, 400);
 });
 
+test("files: inline PDF file_data reaches Claude as a document block", async () => {
+  const file = { type: "file", file: { filename: "notes.pdf", file_data: "data:application/pdf;base64,JVBERi0=" } };
+  const j = await (await chat({ messages: user([{ type: "text", text: "summarize" }, file]) })).json();
+  assert.match(j.choices[0].message.content, /documents=\["notes\.pdf"\]/);
+  const byId = await chat({ messages: user([{ type: "file", file: { file_id: "file-abc" } }]) });
+  assert.equal(byId.status, 400);
+});
+
 test("json_schema response_format returns structured JSON", async () => {
   const schema = { type: "object", properties: { ok: { type: "boolean" } } };
   const j = await (await chat({ messages: user("x"), response_format: { type: "json_schema", json_schema: { name: "t", schema } } })).json();

@@ -33,7 +33,7 @@ point it at Anthropic's API rather than at this service.
   minimal `POST /ask`
 - Streaming (server-sent events, in each API's own event format)
 - **Tool / function calling**: `tools`, `tool_choice`, tool results sent back in history
-- **Images** (base64 / `data:` URLs)
+- **Images and PDFs** (base64 / `data:` URLs)
 - **Structured JSON output** validated against a JSON Schema
 - Thinking effort per request
 - Attaching your own local MCP tool servers, so Claude runs a whole agent loop
@@ -171,6 +171,13 @@ OpenAI: `{"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}
 Anthropic: `{"type": "image", "source": {"type": "base64", ...}}`. PNG, JPEG, GIF and
 WebP. Remote image URLs aren't fetched, so send the bytes.
 
+### PDFs
+
+OpenAI: `{"type": "file", "file": {"filename": "a.pdf", "file_data": "data:application/pdf;base64,..."}}`.
+Anthropic: `{"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": "..."}}`.
+Claude reads the text and the page images. Uploaded file ids and remote URLs aren't supported, so
+send the bytes.
+
 ### Structured JSON
 
 Pass a JSON Schema and get validated JSON back:
@@ -270,7 +277,7 @@ For data that must never leave your machine, point your app at a local model ins
 - Conversations are stateless: send the full history each time, as with the real APIs.
   Multi-turn history is flattened into one prompt.
 - Ignored: `temperature`, `top_p`, `max_tokens`, `stop`, `n` (only one choice).
-  Not supported: audio, PDFs/files, remote image URLs, Anthropic server tools other than
+  Not supported: audio, files other than PDFs, uploaded file ids, remote image/PDF URLs, Anthropic server tools other than
   web search and web fetch, `/v1/messages/count_tokens`.
 - Runs only where `claude` is signed in, i.e. your machine.
 

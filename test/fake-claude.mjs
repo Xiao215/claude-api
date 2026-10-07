@@ -14,6 +14,7 @@ const input = JSON.parse(readFileSync(0, "utf8").split("\n")[0]);
 const blocks = input.message.content;
 const prompt = blocks.filter((b) => b.type === "text").map((b) => b.text).join("");
 const images = blocks.filter((b) => b.type === "image").map((b) => b.source.media_type);
+const documents = blocks.filter((b) => b.type === "document").map((b) => b.title ?? b.source.media_type);
 const system = readFileSync(opt("--system-prompt-file"), "utf8");
 const model = opt("--model");
 const schema = opt("--json-schema") && JSON.parse(opt("--json-schema"));
@@ -34,6 +35,7 @@ const extras = mcpFile
   : "";
 const text =
   `echo model=${model} effort=${opt("--effort") ?? ""} tools=${JSON.stringify(opt("--tools"))} images=${JSON.stringify(images)} ` +
+  (documents.length ? `documents=${JSON.stringify(documents)} ` : "") +
   `anthropic_env=${JSON.stringify(Object.keys(process.env).filter((k) => k.startsWith("ANTHROPIC_")))} ` +
   `system=${JSON.stringify(system)} prompt=${JSON.stringify(prompt)}${extras}`;
 
